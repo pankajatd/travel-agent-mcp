@@ -5,3 +5,5 @@ python-dotenv
 tavily-python
 streamlit
 psycopg[binary]
+langgraph-checkpoint-postgres
+psycopg[binary]
