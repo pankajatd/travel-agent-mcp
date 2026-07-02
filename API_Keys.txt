@@ -1,0 +1,68 @@
+1) To get Aviation Stack API Key
+https://aviationstack.com/
+API Key: 85cf806af0c2f03168f3310b2940dc3c
+
+2)To get Groq API Key
+https://console.groq.com/
+API key: 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
+
+
+3)To get Tavily API Key
+https://www.tavily.com/
+API Key: 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
+
+PostgreSQL Password : Pankaja@7111977
+Port# : 5433
+
+
+Steps to create Global Conda Environment:
+----------------------------------------
+
+1.conda create --name langgraph-conda python=3.11 -y
+2.conda activate langgraph-conda
+3.pip install langgraph langchain-postgres psycopg [pool]
+4. Step 5: Connect it to VS Code
+Finally, you went into VS Code, opened your project folder (C:\Pankaja\Multi_Agent_System_Langgraph), and pointed VS Code to this global environment:
+
+Clicked View at the top menu.
+
+Clicked Command Palette...
+
+Typed and selected Python: Select Interpreter.
+
+Clicked on Python 3.11.x ('langgraph-conda': conda).
+
+
+
+Steps to create Local Environment:
+----------------------------------------
+
+
+1.Click New Terminal.
+write the command :python -m venv langgraph-env2
+
+2.Activate the local environment
+.\langgraph-env2\Scripts\activate
+
+3. Tell VS Code to select it
+Click View at the top menu > Command Palette...
+
+Type Python: Select Interpreter and click it.
+
+Look at the list. VS Code will usually label it as (.venv) or point directly to the folder inside your project. Click it.
+
+
+
+Prompt To Run the code for Creating the Travel Agent APP:
+---------------------------------------------------------
+
+Enter travel request: Plan a complete 7 days Japan trip including flights,hotels and sightseeing under 2lakhs
+
+
+Command to run frontend.py file
+----------------------------------
+(langgraph-conda) PS C:\Pankaja\Multi_Agent_System_Langgraph> streamlit run frontend.py
+
+Command to run main.py file
+----------------------------------
+(langgraph-conda) PS C:\Pankaja\Multi_Agent_System_Langgraph> python main.py
