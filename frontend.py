@@ -2,6 +2,7 @@ import os
 import streamlit as st
 from datetime import datetime
 from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.postgres import PostgresSaver  # Added for database connection tracking
 from main import app
 
 st.set_page_config(
@@ -290,7 +291,7 @@ section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] .stMarkdown { color: #a0c4e0 !important; }
 section[data-testid="stSidebar"] hr { border-color: #1a2e44 !important; }
 
-/* Download button — light bg → dark text  */
+/* Download button — light bg → dark text   */
 div[data-testid="stDownloadButton"] > button {
     background: #1a3a5c !important;
     color: #e8f4ff !important;
@@ -306,7 +307,7 @@ with st.sidebar:
     st.markdown("---")
 
     thread_id = st.text_input("👤 User ID", value="pankaja_user",
-                              help="Your session ID — keeps travel history across queries")
+                             help="Your session ID — keeps travel history across queries")
 
     st.markdown("<div class='sidebar-title'>Powered by</div>", unsafe_allow_html=True)
     for tech in ["🔗 LangGraph", "🧠 Groq · LLaMA 3.3 70B", "🐘 PostgreSQL", "🔍 Tavily Search", "✈️ AviationStack"]:
@@ -393,44 +394,49 @@ if generate:
         st.markdown("<div class='sec-head'><span>🤖 Agent Pipeline — Live</span></div>",
                     unsafe_allow_html=True)
 
-        for chunk in app.stream(
-            {
-                "messages": [HumanMessage(content=user_query)],
-                "user_query": user_query,
-                "flight_results": "",
-                "hotel_results": "",
-                "itinerary": "",
-                "llm_calls": 0,
-            },
-            config=config,
-            stream_mode="updates",
-        ):
-            for node_name, state_update in chunk.items():
-                icon, label = AGENT_META.get(node_name, ("🔧", node_name))
+        # ─── DATABASE LEASE MANAGER BLOCK ───
+        db_url = st.secrets["DB_CONN_STRING"]
+        with PostgresSaver.from_conn_string(db_url) as checkpointer:
+            app.checkpointer = checkpointer
 
-                with st.status(f"{icon}  {label}", state="complete", expanded=True):
-                    if node_name == "flight_agent":
-                        text = state_update.get("flight_results", "")
-                        collected["flight_results"] = text
-                        st.markdown(text or "_No flight data returned._")
+            for chunk in app.stream(
+                {
+                    "messages": [HumanMessage(content=user_query)],
+                    "user_query": user_query,
+                    "flight_results": "",
+                    "hotel_results": "",
+                    "itinerary": "",
+                    "llm_calls": 0,
+                },
+                config=config,
+                stream_mode="updates",
+            ):
+                for node_name, state_update in chunk.items():
+                    icon, label = AGENT_META.get(node_name, ("🔧", node_name))
 
-                    elif node_name == "hotel_agent":
-                        text = state_update.get("hotel_results", "")
-                        collected["hotel_results"] = text
-                        st.markdown(text or "_No hotel data returned._")
+                    with st.status(f"{icon}  {label}", state="complete", expanded=True):
+                        if node_name == "flight_agent":
+                            text = state_update.get("flight_results", "")
+                            collected["flight_results"] = text
+                            st.markdown(text or "_No flight data returned._")
 
-                    elif node_name == "itinerary_agent":
-                        text = state_update.get("itinerary", "")
-                        collected["itinerary"] = text
-                        st.markdown(text or "_No itinerary generated._")
+                        elif node_name == "hotel_agent":
+                            text = state_update.get("hotel_results", "")
+                            collected["hotel_results"] = text
+                            st.markdown(text or "_No hotel data returned._")
 
-                    elif node_name == "final_agent":
-                        msgs = state_update.get("messages", [])
-                        text = msgs[-1].content if msgs else ""
-                        collected["final_response"] = text
-                        st.markdown(text or "_No final response._")
+                        elif node_name == "itinerary_agent":
+                            text = state_update.get("itinerary", "")
+                            collected["itinerary"] = text
+                            st.markdown(text or "_No itinerary generated._")
 
-                    collected["llm_calls"] = state_update.get("llm_calls", collected["llm_calls"])
+                        elif node_name == "final_agent":
+                            msgs = state_update.get("messages", [])
+                            text = msgs[-1].content if msgs else ""
+                            collected["final_response"] = text
+                            st.markdown(text or "_No final response._")
+
+                        collected["llm_calls"] = state_update.get("llm_calls", collected["llm_calls"])
 
         # Metrics
         st.markdown(f"""
